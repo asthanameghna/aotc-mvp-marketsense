@@ -16,3 +16,4 @@ build/
 # Misc
 *.log
 data/
+marketsense_env/
