@@ -1,5 +1,4 @@
-# StudyPlan MVP
-Simple MVP where students upload syllabus + exam date → tailored study plan.
+# MarketSense MVP
 
 ## Setup
 1. Clone repo
