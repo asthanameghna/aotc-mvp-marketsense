@@ -1,3 +1,9 @@
 pandas
 yfinance==0.2.66
 numpy
+feedparser
+vaderSentiment
+fpdf
+
+
+

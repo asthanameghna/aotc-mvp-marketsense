@@ -10,6 +10,7 @@ from yahoo_finance_fetcher import YahooFinanceDataFetcher, clean_market_data
 from feature_engineering import FeatureEngineer
 import logging
 import argparse
+from config import load_watchlist
 
 # Configure logging
 logging.basicConfig(
@@ -86,7 +87,10 @@ def main():
         watchlist = [t.upper() for t in args.tickers]
         print(f"📋 Custom Watchlist: {', '.join(watchlist)}")
     else:
-        watchlist = ['AAPL']
+        # Load from shared file
+        watchlist = load_watchlist()
+        print(f"📋 Loaded Watchlist: {', '.join(watchlist)}")
+    
     days_back = 365 
 
     if args.loop:
