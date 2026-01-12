@@ -36,8 +36,16 @@ class FeatureEngineer:
             # 2. Rolling Volatility (20-period standard deviation of returns)
             data['Volatility_20'] = data['Returns'].rolling(window=20).std()
 
-            # 3. Volume Change
+            # 3. Volume Change & Z-Score
             data['Volume_Change'] = data['Volume'].pct_change()
+            
+            # Volume Z-Score: (Volume - Rolling Mean) / Rolling Std
+            vol_mean = data['Volume'].rolling(window=20).mean()
+            vol_std = data['Volume'].rolling(window=20).std()
+            data['Volume_Z_Score'] = (data['Volume'] - vol_mean) / vol_std
+            
+            # 3b. Momentum (10-period Rate of Change)
+            data['Momentum'] = data['Close'].diff(10)
 
             # --- ADVANCED ANOMALY INDICATORS ---
 
@@ -85,3 +93,16 @@ class FeatureEngineer:
         except Exception as e:
             logger.error(f"❌ Error in feature engineering: {e}")
             return df
+
+    def add_sentiment_score(self, df: pd.DataFrame, score: float) -> pd.DataFrame:
+        """
+        Injects the external news sentiment score into the dataframe.
+        """
+        if df.empty:
+            return df
+        
+        # Broadcast the scalar score to the entire column for the current window
+        # In a real historical backtest, this would need a time-series of sentiment.
+        # For real-time snapshot detection, broadcasting the *current* news mood is valid context.
+        df['Sentiment_Score'] = score
+        return df

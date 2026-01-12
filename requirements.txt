@@ -4,6 +4,7 @@ numpy
 feedparser
 vaderSentiment
 fpdf
+scikit-learn
 
 
 

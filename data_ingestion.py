@@ -1,6 +1,6 @@
 """
 MarketSense - Production Data Ingestion Module
-Fetches real market data from Yahoo Finance for anomaly detection system
+Fetches real market data from Yahoo Finance AND Google News for anomaly detection system
 """
 
 import pandas as pd
@@ -8,6 +8,8 @@ import time
 from datetime import datetime
 from yahoo_finance_fetcher import YahooFinanceDataFetcher, clean_market_data
 from feature_engineering import FeatureEngineer
+from anomaly_detection import MarketAnomalyDetector
+from news_ingestion import NewsIngestor
 import logging
 import argparse
 from config import load_watchlist
@@ -19,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def process_market_data(fetcher, watchlist, days_back):
+def process_market_data(fetcher, news_ingestor, watchlist, days_back):
     """
     Single iteration of data fetching and processing
     """
@@ -33,27 +35,62 @@ def process_market_data(fetcher, watchlist, days_back):
         logger.warning("❌ No data fetched this cycle")
         return
 
-    # Initialize Feature Engineer
+    # Initialize Modules
     fe = FeatureEngineer()
+    detector = MarketAnomalyDetector()
 
-    print("\n📈 PROCESSING & FEATURE ENGINEERING")
+    print("\n📈 PROCESSING, SENTIMENT ANALYSIS & ANOMALY DETECTION")
     print("-" * 60)
 
     for ticker, raw_data in portfolio_data.items():
-        # Clean data
+        # 1. Cleaning
         cleaned_data = clean_market_data(raw_data)
         
-        # Apply Feature Engineering
+        # 2. Fetch News & Sentiment
+        # Note: In a real high-frequency system, this would be async.
+        # For this MVP, we fetch synchronously.
+        headlines = news_ingestor.fetch_news_for_stock(ticker)
+        
+        # Analyze sentiment
+        # We reuse the analyzer embedded in news_ingestor, but ideally it should be separate.
+        # news_ingestor.sentiment_analyzer is available.
+        if headlines:
+            _, avg_sentiment = news_ingestor.sentiment_analyzer.analyze_headlines(headlines)
+        else:
+            avg_sentiment = 0.0 # Neutral if no news
+            
+        sentiment_text = f"{avg_sentiment:+.2f}"
+        if avg_sentiment > 0.1: sentiment_icon = "🟢"
+        elif avg_sentiment < -0.1: sentiment_icon = "🔴"
+        else: sentiment_icon = "⚪"
+        
+        # 3. Feature Engineering
         enriched_data = fe.add_technical_indicators(cleaned_data)
         
+        # 4. Inject Sentiment
+        try:
+            enriched_data = fe.add_sentiment_score(enriched_data, avg_sentiment)
+        except Exception as e:
+            logger.error(f"Failed to add sentiment: {e}")
+            continue
+
+        # 5. Anomaly Detection (Now uses Sentiment as a feature!)
+        analyzed_data = detector.train_and_predict(enriched_data)
+        
         # Get latest data point for display
-        latest = enriched_data.iloc[-1]
+        latest = analyzed_data.iloc[-1]
+        
+        # Extract Anomaly Info
+        anomaly_score = latest.get('Anomaly_Score', 0)
+        is_anomaly = latest.get('Is_Anomaly', False)
+        
+        status_icon = "🔴" if is_anomaly else "🟢"
         
         print(f"\n📊 {ticker} Update:")
-        print(f"   OHLC: Op ${latest['Open']:.2f} | Hi ${latest['High']:.2f} | Lo ${latest['Low']:.2f} | Cl ${latest['Close']:.2f}")
-        print(f"   Vol (20d): {latest['Volatility_20']:.4f} | Rtn: {latest['Returns']:.2%} | Z-Score: {latest['Z_Score']:.2f}")
-        print(f"   RSI: {latest['RSI_14']:.1f} | BB %B: {latest['BB_PctB']:.2f} | VWAP Dev: {latest['VWAP_Dev']:.2%}")
-        print(f"   MACD: {latest['MACD']:.3f} | Signal: {latest['MACD_Signal']:.3f}")
+        print(f"   OHLC: Op ${latest['Open']:.2f} | Cl ${latest['Close']:.2f} | Vol: {latest['Volume']:.0f}")
+        print(f"   Rtn: {latest['Returns']:.2%} | Z-Score: {latest['Z_Score']:.2f} | Momentum: {latest['Momentum']:.2f}")
+        print(f"   📰 Sentiment: {sentiment_icon} {sentiment_text} (Based on {len(headlines)} headlines)")
+        print(f"   {status_icon} ANOMALY SCORE: {anomaly_score:.1f}/100 | Detected: {is_anomaly}")
 
     print("\n✅ Cycle complete. Waiting for next update...")
 
@@ -68,11 +105,12 @@ def main():
     args = parser.parse_args()
 
     print("=" * 80)
-    print("🏭 MARKETSENSE - PRODUCTION DATA INGESTION SYSTEM")
+    print("🏭 MARKETSENSE - MULTI-MODAL ANOMALY DETECTION SYSTEM")
     print("=" * 80)
 
-    # Initialize production fetcher
+    # Initialize production fetchers
     fetcher = YahooFinanceDataFetcher()
+    news_ingestor = NewsIngestor()
 
     # Test connectivity first
     print("🔍 Testing Yahoo Finance connectivity...")
@@ -87,7 +125,6 @@ def main():
         watchlist = [t.upper() for t in args.tickers]
         print(f"📋 Custom Watchlist: {', '.join(watchlist)}")
     else:
-        # Load from shared file
         watchlist = load_watchlist()
         print(f"📋 Loaded Watchlist: {', '.join(watchlist)}")
     
@@ -97,13 +134,13 @@ def main():
         print(f"🔄 Starting continuous loop (Interval: {args.interval}s)")
         try:
             while True:
-                process_market_data(fetcher, watchlist, days_back)
+                process_market_data(fetcher, news_ingestor, watchlist, days_back)
                 time.sleep(args.interval)
         except KeyboardInterrupt:
             print("\n⚠️ Stopped by user")
     else:
         # Run once
-        process_market_data(fetcher, watchlist, days_back)
+        process_market_data(fetcher, news_ingestor, watchlist, days_back)
 
     print("\n" + "=" * 80)
     print("✅ DATA INGESTION COMPLETE")
