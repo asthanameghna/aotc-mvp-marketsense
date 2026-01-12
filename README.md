@@ -1,25 +1,52 @@
-# MarketSense - Financial Intelligence System 📈
+# MarketSense - AI-Powered Market Anomaly Detection 🧠📈
 
-MarketSense is a Python-based system that ingests real-time financial market data and news to provide actionable insights. It combines technical analysis (using `yfinance`) with sentiment analysis (using Google News & VADER).
+**MarketSense** is a professional-grade financial intelligence system designed to detect market anomalies in real-time. 
 
-## 🚀 Quick Start
+Unlike traditional screeners that rely solely on price action, MarketSense employs a **Multi-Modal AI Engine** that fuses **Technical Indicators** (Hard Data) with **News Sentiment Analysis** (Soft Data) to identify statistical outliers, potential crashes, and breakout opportunities.
 
-### 1. Setup Environment
+---
+
+## 🚀 Key Features
+
+*   **Multi-Modal Fusion**: Combines Market Data (Price/Volume) and NLP (News Sentiment) into a single vector.
+*   **Unsupervised Learning**: Uses an **Isolation Forest** (ML) model to detect anomalies without needing labeled training data.
+*   **Advanced Technicals**: Automatically calculates RSI (14), Bollinger Bands (%B, Bandwidth), MACD, VWAP, and Momentum.
+*   **Sentiment Engine**: Scrapes Google News in real-time and computes a VADER sentiment score (-1.0 to +1.0).
+*   **Automated Watchlist**: Fully configurable via a simple text file (`watchlist.txt`).
+
+---
+
+## 🛠️ System Architecture
+
+1.  **Ingestion Layer**: 
+    *   `yahoo_finance_fetcher.py`: High-performance async data fetching.
+    *   `news_ingestion.py`: Real-time news scraping from trusted sources (Reuters, Bloomberg, CNBC).
+2.  **Processing Layer**:
+    *   `feature_engineering.py`: Computes 10+ technical indicators and injects sentiment scores.
+    *   `sentiment_analysis.py`: Uses VADER to quantify the "mood" of the market history.
+3.  **Intelligence Layer**:
+    *   `anomaly_detection.py`: The core ML brain. Normalizes features and assigns a 0-100 Anomaly Score.
+4.  **Orchestrator**:
+    *   `data_ingestion.py`: The main loop that ties it all together.
+
+---
+
+## ⚡ Quick Start
+
+### 1. Prerequisites
 Ensure you have Python 3.9+ installed.
 
 ```bash
-# Create virtual environment (optional but recommended)
-python3 -m venv .venv
-source .venv/bin/activate  # On Mac/Linux
-# .venv\Scripts\activate   # On Windows
+# 1. Clone the repository
+git clone https://github.com/asthanameghna/aotc-mvp-marketsense.git
+cd aotc-mvp-marketsense
 
-# Install dependencies
+# 2. Install Dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configure Your Stocks
-Edit the `watchlist.txt` file to add the tickers you want to track. One ticker per line.
-
+### 2. Configure Watchlist
+Edit `watchlist.txt` in the root directory. Add one stock ticker per line:
 ```text
 AAPL
 NVDA
@@ -28,38 +55,48 @@ MSFT
 GOOGL
 ```
 
-### 3. Run Data Ingestion (Market Data)
-Fetches OHLC data, calculates technical indicators (RSI, MACD, Bollinger Bands), and checks for anomalies.
+### 3. Run the Anomaly Detector
+The system is fully autonomous. Run the main ingestion script to start the analysis.
 
-**Run Once:**
+**Instant Scan (Recommended):**
 ```bash
 python data_ingestion.py
 ```
+*Loads tickers from `watchlist.txt`.*
 
-**Run in a Loop (Every 15 mins):**
+**Continuous Monitoring (15-min Loop):**
 ```bash
 python data_ingestion.py --loop --interval 900
 ```
 
-### 4. Run News Ingestion (Sentiment Analysis)
-Fetches live news for your watchlist, analyzes sentiment (Positive/Negative/Neutral), and gives a Buy/Sell/Hold verdict.
-
-**Run Once:**
+**Ad-Hoc Analysis (Specific Tickers):**
 ```bash
-python news_ingestion.py --interval 0
+python data_ingestion.py --tickers AQST VLN
 ```
 
-**Run in a Loop (Every 5 mins):**
-```bash
-python news_ingestion.py --interval 300
+---
+
+## 📊 Understanding the Output
+
+The terminal output provides a concise "Head-Up Display" (HUD) for each asset:
+
+```text
+📊 AAPL Update:
+   Rtn: 0.13% | Z-Score: -1.93 | Momentum: -14.44
+   📰 Sentiment: 🟢 +0.26 (Based on 5 headlines)
+   🟢 ANOMALY SCORE: 22.4/100 | Detected: False
+
+📊 VLN Update:
+   Rtn: 58.97% | Z-Score: 4.02
+   📰 Sentiment: ⚪ +0.00 (Neutral)
+   🔴 ANOMALY SCORE: 100.0/100 | Detected: True
 ```
 
-## 📂 Project Structure
+*   **🟢/🔴 Status**: Red indicates a statistical anomaly (Top 1% outlier).
+*   **Sentiment**: Positive (+0.2 to +1.0), Neutral (-0.2 to +0.2), Negative (-1.0 to -0.2).
+*   **Anomaly Score**: 0 (Normal) to 100 (Extreme Anomaly).
 
-*   `data_ingestion.py`: Main script for stock price data & technical indicators.
-*   `news_ingestion.py`: Main script for news fetching & sentiment analysis.
-*   `yahoo_finance_fetcher.py`: Handles fetching data from Yahoo Finance.
-*   `feature_engineering.py`: Calculates technical indicators.
-*   `sentiment_analysis.py`: Uses VADER to score news headlines.
-*   `config.py`: Utilities for loading configuration (watchlist).
-*   `watchlist.txt`: The requested tickers to track.
+---
+
+## 📝 License
+MIT License. Free for educational and research use.
