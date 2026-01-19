@@ -10,6 +10,8 @@ from yahoo_finance_fetcher import YahooFinanceDataFetcher, clean_market_data
 from feature_engineering import FeatureEngineer
 from anomaly_detection import MarketAnomalyDetector
 from news_ingestion import NewsIngestor
+from risk_assessment import calculate_risk_level
+from explainability import generate_explanation
 import logging
 import argparse
 from config import load_watchlist
@@ -84,12 +86,23 @@ def process_market_data(fetcher, news_ingestor, watchlist, days_back):
         anomaly_score = latest.get('Anomaly_Score', 0)
         is_anomaly = latest.get('Is_Anomaly', False)
         
+        # 6. Risk & Explainability [NEW]
+        risk_level = calculate_risk_level(
+            anomaly_score=anomaly_score,
+            volatility_z_score=latest.get('Volatility_20', 0), # Using Volatility_20 as proxy if Z-Score not explicit
+            sentiment_score=avg_sentiment
+        )
+        
+        explanation = generate_explanation(latest)
+        
         status_icon = "🔴" if is_anomaly else "🟢"
         
         print(f"\n📊 {ticker} Update:")
         print(f"   OHLC: Op ${latest['Open']:.2f} | Cl ${latest['Close']:.2f} | Vol: {latest['Volume']:.0f}")
         print(f"   Rtn: {latest['Returns']:.2%} | Z-Score: {latest['Z_Score']:.2f} | Momentum: {latest['Momentum']:.2f}")
         print(f"   📰 Sentiment: {sentiment_icon} {sentiment_text} (Based on {len(headlines)} headlines)")
+        print(f"   ⚠️ Risk Level: {risk_level}")
+        print(f"   ℹ️  Analysis: {explanation}")
         print(f"   {status_icon} ANOMALY SCORE: {anomaly_score:.1f}/100 | Detected: {is_anomaly}")
 
     print("\n✅ Cycle complete. Waiting for next update...")
