@@ -57,6 +57,26 @@ class YahooFinanceDataFetcher:
         # yfinance download for multiple tickers returns a MultiIndex DataFrame
         # We need to flatten it into a dict of DataFrames
         try:
+            # For single ticker, don't use group_by to avoid MultiIndex
+            if len(distinct_tickers) == 1:
+                ticker = distinct_tickers[0]
+                data = yf.download(
+                    ticker, 
+                    period=f"{days_back}d",
+                    progress=False
+                )
+                
+                portfolio_data = {}
+                if not data.empty:
+                    # Flatten MultiIndex columns if present
+                    # yfinance returns columns like ('Close', 'AAPL') even for single ticker
+                    if isinstance(data.columns, pd.MultiIndex):
+                        # Take the first level (column names like 'Close', 'Open', etc.)
+                        data.columns = data.columns.get_level_values(0)
+                    portfolio_data[ticker] = data
+                return portfolio_data
+            
+            # Multiple tickers
             data = yf.download(
                 distinct_tickers, 
                 period=f"{days_back}d",
@@ -67,27 +87,22 @@ class YahooFinanceDataFetcher:
             
             portfolio_data = {}
             
-            # If only one ticker, yfinance doesn't return MultiIndex
-            if len(distinct_tickers) == 1:
-                ticker = distinct_tickers[0]
-                if not data.empty:
-                    portfolio_data[ticker] = data
-            else:
-                for ticker in distinct_tickers:
-                    # Extract dataframe for this ticker
-                    try:
-                        ticker_df = data[ticker].copy()
+            for ticker in distinct_tickers:
+                # Extract dataframe for this ticker
+                try:
+                    ticker_df = data[ticker].copy()
+                    if not ticker_df.empty:
+                         # Drop rows where all columns are NaN (if any)
+                        ticker_df.dropna(how='all', inplace=True)
                         if not ticker_df.empty:
-                             # Drop rows where all columns are NaN (if any)
-                            ticker_df.dropna(how='all', inplace=True)
-                            if not ticker_df.empty:
-                                portfolio_data[ticker] = ticker_df
-                    except KeyError:
-                        logger.warning(f"No data found for {ticker}")
-                        continue
+                            portfolio_data[ticker] = ticker_df
+                except KeyError:
+                    logger.warning(f"No data found for {ticker}")
+                    continue
                         
             return portfolio_data
             
         except Exception as e:
             logger.error(f"Batch fetch failed: {e}")
             return {}
+

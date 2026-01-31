@@ -45,8 +45,8 @@ class MarketAnomalyDetector:
         data = df.copy()
         
         # Prepare Feature Matrix
-        # Drop NaNs created by rolling windows
-        feature_data = data[self.features].dropna()
+        # Handle Infinity values (e.g. div by zero) and NaNs
+        feature_data = data[self.features].replace([np.inf, -np.inf], np.nan).dropna()
         
         if feature_data.empty:
              return df

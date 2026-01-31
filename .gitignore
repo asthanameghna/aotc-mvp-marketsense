@@ -17,3 +17,15 @@ build/
 *.log
 data/
 marketsense_env/
+
+# Reports and Documentation PDFs
+*.pdf
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Streamlit cache
+.streamlit/
