@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketSense - AI-Powered Market Anomaly Detection</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">📈</div>
+                    <h1 class="logo-text">MarketSense</h1>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn active" data-view="dashboard">
+                        <span class="icon">📊</span>
+                        Dashboard
+                    </button>
+                    <button class="nav-btn" data-view="watchlist">
+                        <span class="icon">⭐</span>
+                        Watchlist
+                    </button>
+                    <button class="nav-btn" id="refreshBtn">
+                        <span class="icon">🔄</span>
+                        Refresh
+                    </button>
+                </nav>
+                <div class="header-actions">
+                    <div class="auto-refresh-toggle">
+                        <input type="checkbox" id="autoRefresh" class="toggle-input">
+                        <label for="autoRefresh" class="toggle-label">
+                            <span class="toggle-text">Auto-refresh</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h2 class="hero-title">AI-Powered Market Anomaly Detection</h2>
+                <p class="hero-subtitle">Real-time analysis combining technical indicators, news sentiment, and machine
+                    learning</p>
+            </section>
+
+            <!-- Dashboard View -->
+            <section id="dashboardView" class="view active">
+                <!-- Stats Overview -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Stocks Tracked</div>
+                            <div class="stat-value" id="totalStocks">-</div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card" style="display: none;">
+                        <div class="stat-icon">🔴</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Anomalies Detected</div>
+                            <div class="stat-value" id="anomalyCount">-</div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card" style="display: none;">
+                        <div class="stat-icon">📰</div>
+                        <div class="stat-content">
+                            <div class="stat-label">News Analyzed</div>
+                            <div class="stat-value" id="newsCount">-</div>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Last Update</div>
+                            <div class="stat-value" id="lastUpdate">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Cards Grid -->
+                <div class="section-header">
+                    <h3 class="section-title">Market Overview</h3>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" id="addStockBtn">
+                            <span class="icon">➕</span>
+                            Add Stock
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stocks-grid" id="stocksGrid">
+                    <!-- Stock cards will be dynamically inserted here -->
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading-container" id="loadingState">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-text">Loading market data...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">📊</div>
+                    <h3 class="empty-title">No Data Available</h3>
+                    <p class="empty-text">Background jobs may not have run yet. Please wait a moment and refresh.</p>
+                    <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+                </div>
+
+                <!-- Error State -->
+                <div class="error-state" id="errorState" style="display: none;">
+                    <div class="error-icon">⚠️</div>
+                    <h3 class="error-title">Connection Error</h3>
+                    <p class="error-text" id="errorMessage">Unable to connect to the API. Please ensure the backend is
+                        running.</p>
+                    <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+                </div>
+            </section>
+
+            <!-- Watchlist View -->
+            <section id="watchlistView" class="view">
+                <div class="watchlist-container">
+                    <div class="watchlist-header">
+                        <h3 class="section-title">Manage Watchlist</h3>
+                        <p class="section-subtitle">Add or remove stocks from your watchlist</p>
+                    </div>
+
+                    <div class="watchlist-content glass-card">
+                        <div class="watchlist-form">
+                            <input type="text" id="tickerInput" class="input"
+                                placeholder="Enter ticker symbol (e.g., AAPL)" maxlength="10">
+                            <button class="btn btn-primary" id="addTickerBtn">Add to Watchlist</button>
+                        </div>
+
+                        <p
+                            style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 1rem 0; text-align: center;">
+                            💡 <strong>Tip:</strong> After adding a stock, the analysis will open automatically!
+                        </p>
+
+                        <div class="watchlist-items" id="watchlistItems">
+                            <!-- Watchlist items will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Stock Detail Modal -->
+    <div class="modal" id="stockModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content glass-card">
+            <button class="modal-close" id="modalClose">&times;</button>
+
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTicker">-</h2>
+                <div class="modal-timestamp" id="modalTimestamp">-</div>
+            </div>
+
+            <div class="modal-body">
+                <!-- Historical Chart -->
+                <div class="modal-section" id="modalHistorySection">
+                    <div class="chart-controls">
+                        <button class="btn btn-sm time-btn active" data-days="30">1M</button>
+                        <button class="btn btn-sm time-btn" data-days="90">3M</button>
+                        <button class="btn btn-sm time-btn" data-days="180">6M</button>
+                        <button class="btn btn-sm time-btn" data-days="365">1Y</button>
+                        <button class="btn btn-sm time-btn" data-days="730">2Y</button>
+                        <button class="btn btn-sm time-btn" data-days="1825">5Y</button>
+                        <button class="btn btn-sm time-btn" data-days="3650">MAX</button>
+                    </div>
+                    <div class="history-chart-container">
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Price Data -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title">Price Data</h3>
+                    <div class="price-grid">
+                        <div class="price-item">
+                            <span class="price-label">Open</span>
+                            <span class="price-value" id="modalOpen">-</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">High</span>
+                            <span class="price-value" id="modalHigh">-</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">Low</span>
+                            <span class="price-value" id="modalLow">-</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">Close</span>
+                            <span class="price-value" id="modalClosePrice">-</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">Volume</span>
+                            <span class="price-value" id="modalVolume">-</span>
+                        </div>
+                        <div class="price-item">
+                            <span class="price-label">Returns</span>
+                            <span class="price-value" id="modalReturns">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anomaly Detection -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title">Anomaly Detection</h3>
+                    <div class="anomaly-container">
+                        <div class="anomaly-gauge">
+                            <canvas id="anomalyGauge"></canvas>
+                        </div>
+                        <div class="anomaly-info">
+                            <div class="anomaly-status" id="modalAnomalyStatus">-</div>
+                            <div class="risk-badge" id="modalRiskBadge">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technical Indicators -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title">Technical Indicators</h3>
+                    <div class="indicators-grid" id="modalIndicators">
+                        <!-- Technical indicators will be dynamically inserted -->
+                    </div>
+                </div>
+
+                <!-- Sentiment Analysis -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title">News Sentiment</h3>
+                    <div class="sentiment-container">
+                        <div class="sentiment-score" id="modalSentimentScore">-</div>
+                        <div class="sentiment-headlines" id="modalHeadlines">
+                            <!-- Headlines will be dynamically inserted -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Explanation -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title">Risk Assessment</h3>
+                    <div class="risk-explanation" id="modalExplanation">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="js/components.js?v=99"></script>
+    <script src="js/charts.js?v=99"></script>
+    <script src="js/app.js?v=99"></script>
+</body>
+
+</html>

@@ -1,0 +1,20 @@
+services:
+  # The main web service hosting the API and the Frontend
+  - type: web
+    name: marketsense-web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      
+  # The background worker process that refreshes data 
+  - type: worker
+    name: marketsense-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python background_jobs.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0

@@ -89,19 +89,11 @@ app.add_middleware(
 app.include_router(router)
 
 
-# Root endpoint
-@app.get("/", tags=["Root"])
-async def root():
-    """
-    API root endpoint with basic information.
-    """
-    return {
-        "name": "MarketSense API",
-        "version": "1.0.0",
-        "description": "AI-Powered Market Anomaly Detection",
-        "docs": "/docs",
-        "health": "/api/v1/health"
-    }
+from fastapi.staticfiles import StaticFiles
+
+# Mount frontend as static files on the root
+# This allows the API and the web app to run on the exact same port!
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 
 # Global exception handler

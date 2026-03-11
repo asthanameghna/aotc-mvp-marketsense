@@ -59,6 +59,23 @@ class AnomalyData(BaseModel):
     threshold: float = Field(default=75.0, description="Anomaly detection threshold")
 
 
+class HistoricalDataPoint(BaseModel):
+    """A single historical price data point"""
+    timestamp: str = Field(..., description="Date and time of the record")
+    open: float = Field(..., description="Opening price")
+    high: float = Field(..., description="High price")
+    low: float = Field(..., description="Low price")
+    close: float = Field(..., description="Closing price")
+    volume: int = Field(..., description="Trading volume")
+
+
+class HistoricalDataResponse(BaseModel):
+    """List of historical data points for a stock"""
+    ticker: str = Field(..., description="Stock ticker symbol")
+    count: int = Field(..., description="Number of historical data points")
+    data: List[HistoricalDataPoint] = Field(..., description="List of historical price points")
+
+
 class RiskData(BaseModel):
     """Risk assessment results"""
     level: str = Field(..., description="Risk level: Low, Medium, or High")

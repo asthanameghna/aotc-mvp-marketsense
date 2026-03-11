@@ -141,7 +141,7 @@ def main():
         watchlist = load_watchlist()
         print(f"📋 Loaded Watchlist: {', '.join(watchlist)}")
     
-    days_back = 365 
+    days_back = 3650 
 
     if args.loop:
         print(f"🔄 Starting continuous loop (Interval: {args.interval}s)")

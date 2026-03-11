@@ -92,7 +92,7 @@ def ingest_market_data_job():
         anomaly_detector = MarketAnomalyDetector()
         
         # Fetch data for all stocks
-        portfolio_data = fetcher.fetch_multiple_stocks(watchlist, days_back=365)
+        portfolio_data = fetcher.fetch_multiple_stocks(watchlist, days_back=3650)
         
         for ticker, raw_data in portfolio_data.items():
             try:

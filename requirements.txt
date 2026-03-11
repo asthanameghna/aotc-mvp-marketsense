@@ -11,6 +11,5 @@ pydantic
 python-multipart
 sqlalchemy
 apscheduler
-streamlit
 plotly
 python-dotenv
