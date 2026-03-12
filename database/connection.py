@@ -11,10 +11,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Force the database file to be created in the application root directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, "marketsense.db")
+
 # Database URL from environment or default to SQLite
 DATABASE_URL = os.getenv(
     'DATABASE_URL',
-    'sqlite:///./marketsense.db'
+    f'sqlite:///{DEFAULT_DB_PATH}'
 )
 
 # Create engine
