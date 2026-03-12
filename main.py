@@ -12,6 +12,10 @@ from fastapi.responses import JSONResponse
 
 from api.routes import router
 from api.dependencies import get_cache_service, get_market_service
+from background_jobs import ingest_news_job, ingest_market_data_job
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -39,12 +43,37 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ Yahoo Finance connectivity test failed")
     
+    # Start background scheduler
+    NEWS_INTERVAL = int(os.getenv('NEWS_INTERVAL_MINUTES', '5'))
+    MARKET_DATA_INTERVAL = int(os.getenv('MARKET_DATA_INTERVAL_MINUTES', '15'))
+    
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        ingest_news_job,
+        trigger=IntervalTrigger(minutes=NEWS_INTERVAL),
+        id='news_ingestion',
+        name='News Ingestion Job',
+        replace_existing=True
+    )
+    scheduler.add_job(
+        ingest_market_data_job,
+        trigger=IntervalTrigger(minutes=MARKET_DATA_INTERVAL),
+        id='market_data_ingestion',
+        name='Market Data Ingestion Job',
+        replace_existing=True
+    )
+    scheduler.start()
+    app.state.scheduler = scheduler
+    logger.info(f"✅ Background scheduler started (News: {NEWS_INTERVAL}m, Market: {MARKET_DATA_INTERVAL}m)")
+    
     logger.info("✅ MarketSense API is ready")
     
     yield
     
     # Shutdown
     logger.info("🛑 Shutting down MarketSense API...")
+    if hasattr(app.state, 'scheduler'):
+        app.state.scheduler.shutdown()
     cache.clear()
     logger.info("✅ Shutdown complete")
 
