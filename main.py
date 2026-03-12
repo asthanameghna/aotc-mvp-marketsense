@@ -12,9 +12,11 @@ from fastapi.responses import JSONResponse
 
 from api.routes import router
 from api.dependencies import get_cache_service, get_market_service
+from database.connection import init_database
 from background_jobs import ingest_news_job, ingest_market_data_job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from datetime import datetime
 import os
 
 # Configure logging
@@ -32,6 +34,9 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("🚀 Starting MarketSense API...")
+    
+    # Initialize database tables (creates market_sense.db and tables on Render)
+    init_database()
     
     # Initialize services
     cache = get_cache_service()
@@ -53,6 +58,7 @@ async def lifespan(app: FastAPI):
         trigger=IntervalTrigger(minutes=NEWS_INTERVAL),
         id='news_ingestion',
         name='News Ingestion Job',
+        next_run_time=datetime.now(),
         replace_existing=True
     )
     scheduler.add_job(
@@ -60,6 +66,7 @@ async def lifespan(app: FastAPI):
         trigger=IntervalTrigger(minutes=MARKET_DATA_INTERVAL),
         id='market_data_ingestion',
         name='Market Data Ingestion Job',
+        next_run_time=datetime.now(),
         replace_existing=True
     )
     scheduler.start()
