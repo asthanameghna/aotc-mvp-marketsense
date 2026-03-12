@@ -16,7 +16,7 @@ from database.connection import init_database
 from background_jobs import ingest_news_job, ingest_market_data_job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 # Configure logging
@@ -53,12 +53,16 @@ async def lifespan(app: FastAPI):
     MARKET_DATA_INTERVAL = int(os.getenv('MARKET_DATA_INTERVAL_MINUTES', '15'))
     
     scheduler = BackgroundScheduler()
+    
+    # Give the database 5 seconds to fully initialize before running the first jobs
+    start_time = datetime.now() + timedelta(seconds=5)
+    
     scheduler.add_job(
         ingest_news_job,
         trigger=IntervalTrigger(minutes=NEWS_INTERVAL),
         id='news_ingestion',
         name='News Ingestion Job',
-        next_run_time=datetime.now(),
+        next_run_time=start_time,
         replace_existing=True
     )
     scheduler.add_job(
@@ -66,7 +70,7 @@ async def lifespan(app: FastAPI):
         trigger=IntervalTrigger(minutes=MARKET_DATA_INTERVAL),
         id='market_data_ingestion',
         name='Market Data Ingestion Job',
-        next_run_time=datetime.now(),
+        next_run_time=start_time,
         replace_existing=True
     )
     scheduler.start()
