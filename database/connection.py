@@ -65,11 +65,16 @@ def init_database():
     """
     Initialize database by creating all tables.
     """
-    from .models import Base
-    
-    logger.info("Creating database tables...")
-    Base.metadata.create_all(bind=engine)
-    logger.info("✅ Database tables created successfully")
+    # Import models here to ensure they are registered with Base metadata
+    try:
+        from . import models
+        logger.info("Creating database tables...")
+        # Use the Base from connection.py to ensure we use the correct metadata
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables created successfully")
+    except Exception as e:
+        logger.error(f"❌ Error initializing database: {e}")
+        raise
 
 
 def check_connection():

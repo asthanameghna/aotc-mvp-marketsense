@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from api.routes import router
 from api.dependencies import get_cache_service, get_market_service
-from database.connection import init_database
+from database.connection import init_database, check_connection
 from background_jobs import ingest_news_job, ingest_market_data_job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -36,7 +36,14 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting MarketSense API...")
     
     # Initialize database tables (creates market_sense.db and tables on Render)
-    init_database()
+    try:
+        init_database()
+        if check_connection():
+            logger.info("✅ Database initialized and verified")
+        else:
+            logger.error("❌ Database initialization failed verification")
+    except Exception as e:
+        logger.error(f"❌ CRITICAL: Database initialization failed: {e}")
     
     # Initialize services
     cache = get_cache_service()
