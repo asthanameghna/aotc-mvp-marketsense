@@ -398,6 +398,29 @@ async def ingest_stock_on_demand(
 # System Endpoints
 # ============================================================================
 
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="API Health Check",
+    description="Check API status and database connectivity"
+)
+async def get_health(
+    db: Session = Depends(get_db),
+    cache: CacheService = Depends(get_cache_service)
+) -> HealthResponse:
+    """API health check and statistics."""
+    from database.connection import check_connection, engine
+    from api.dependencies import get_market_service
+    from datetime import datetime
+    
+    db_connected = check_connection()
+    db_type = "sqlite" if str(engine.url).startswith("sqlite") else "postgresql"
+    
+    # Get table names
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    
     counts = {}
     try:
         from database.models import Stock, MarketData, NewsHeadline, AnomalyScore
