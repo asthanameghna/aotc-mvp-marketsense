@@ -59,17 +59,53 @@ async def lifespan(app: FastAPI):
     NEWS_INTERVAL = int(os.getenv('NEWS_INTERVAL_MINUTES', '5'))
     MARKET_DATA_INTERVAL = int(os.getenv('MARKET_DATA_INTERVAL_MINUTES', '15'))
     
+    # Check if we have any data. If not, trigger an immediate ingestion
+    from database import crud
+    from database.connection import SessionLocal
+    db = SessionLocal()
+    has_data = False
+    try:
+        watchlist = load_watchlist()
+        if watchlist:
+            first_ticker = watchlist[0]
+            analysis = crud.get_complete_analysis(db, first_ticker)
+            if analysis:
+                has_data = True
+                logger.info(f"📊 Existing data found for {first_ticker}, skipping initial sync.")
+            else:
+                logger.info("🔍 No data found in database. Initial sync required.")
+    except Exception as e:
+        logger.error(f"Error checking for existing data: {e}")
+    finally:
+        db.close()
+
     scheduler = BackgroundScheduler()
     
-    # Give the database 5 seconds to fully initialize before running the first jobs
-    start_time = datetime.now() + timedelta(seconds=5)
+    # Give the database 2 seconds to be ready
+    start_time = datetime.now() + timedelta(seconds=2)
     
+    # If no data, run once immediately
+    if not has_data:
+        logger.info("🚀 Triggering immediate data ingestion for faster first-load...")
+        scheduler.add_job(
+            ingest_news_job,
+            trigger='date',
+            run_date=datetime.now() + timedelta(seconds=1),
+            id='initial_news_sync'
+        )
+        scheduler.add_job(
+            ingest_market_data_job,
+            trigger='date',
+            run_date=datetime.now() + timedelta(seconds=5),
+            id='initial_market_sync'
+        )
+
     scheduler.add_job(
         ingest_news_job,
         trigger=IntervalTrigger(minutes=NEWS_INTERVAL),
         id='news_ingestion',
         name='News Ingestion Job',
-        next_run_time=start_time,
+        next_run_time=start_time + timedelta(minutes=NEWS_INTERVAL) if not has_data else start_time,
         replace_existing=True
     )
     scheduler.add_job(
@@ -77,7 +113,7 @@ async def lifespan(app: FastAPI):
         trigger=IntervalTrigger(minutes=MARKET_DATA_INTERVAL),
         id='market_data_ingestion',
         name='Market Data Ingestion Job',
-        next_run_time=start_time,
+        next_run_time=start_time + timedelta(minutes=MARKET_DATA_INTERVAL) if not has_data else start_time,
         replace_existing=True
     )
     scheduler.start()

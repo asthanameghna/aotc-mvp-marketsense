@@ -189,7 +189,7 @@ const App = {
             await this.loadWatchlist();
 
             if (this.state.watchlist.length === 0) {
-                Components.showEmpty();
+                Components.showEmpty('Your watchlist is empty. Add a stock ticker above to get started.');
                 this.updateStats(0, 0, 0);
                 return;
             }

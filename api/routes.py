@@ -398,25 +398,40 @@ async def ingest_stock_on_demand(
 # System Endpoints
 # ============================================================================
 
-@router.get("/health", response_model=HealthResponse)
-async def health_check(
-    cache: CacheService = Depends(get_cache_service),
-    db: Session = Depends(get_db)
-) -> HealthResponse:
-    """API health check."""
-    stats = cache.get_stats()
-    
-    # Check database connection
+    counts = {}
     try:
-        from database.connection import check_connection
-        db_connected = check_connection()
-    except Exception:
-        db_connected = False
-    
-    return HealthResponse(
-        status="healthy" if db_connected else "degraded",
-        timestamp=datetime.now().isoformat(),
-        cache_stats=CacheStats(**stats),
-        data_source_connected=db_connected
-    )
+        from database.models import Stock, MarketData, NewsHeadline, AnomalyScore
+        counts = {
+            "stocks": db.query(Stock).count(),
+            "market_data": db.query(MarketData).count(),
+            "news_headlines": db.query(NewsHeadline).count(),
+            "anomaly_scores": db.query(AnomalyScore).count()
+        }
+    except Exception as e:
+        logger.error(f"Error getting counts for health check: {e}")
+
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "cache_stats": cache.get_stats(),
+        "database": {
+            "connected": db_connected,
+            "type": db_type,
+            "tables": tables,
+            "counts": counts
+        },
+        "data_source_connected": get_market_service().test_connectivity()
+    }
+
+@router.post("/init-db", summary="Force database initialization")
+async def force_init_db():
+    """
+    Manually trigger database initialization.
+    """
+    from database.connection import init_database
+    try:
+        init_database()
+        return {"status": "success", "message": "Database initialization triggered"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 

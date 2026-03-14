@@ -38,11 +38,17 @@ class YahooFinanceDataFetcher:
         Tests connection to Yahoo Finance API
         """
         try:
+            logger.info("Testing Yahoo Finance connectivity...")
             test = yf.Ticker("AAPL")
             hist = test.history(period="1d")
-            return not hist.empty
+            success = not hist.empty
+            if success:
+                logger.info("✅ Yahoo Finance connectivity verified")
+            else:
+                logger.warning("⚠️ Yahoo Finance connectivity test returned empty data")
+            return success
         except Exception as e:
-            logger.error(f"Connectivity test failed: {e}")
+            logger.error(f"❌ Yahoo Finance connectivity test failed: {e}")
             return False
 
     def fetch_multiple_stocks(self, distinct_tickers, days_back=365):

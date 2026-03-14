@@ -177,11 +177,15 @@ const Components = {
     /**
      * Show empty state
      */
-    showEmpty() {
+    showEmpty(message = 'No data available. Background jobs may be running.') {
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('stocksGrid').style.display = 'none';
         document.getElementById('emptyState').style.display = 'flex';
         document.getElementById('errorState').style.display = 'none';
+        if (message) {
+            const emptyMsg = document.querySelector('#emptyState p');
+            if (emptyMsg) emptyMsg.textContent = message;
+        }
     },
 
     /**
