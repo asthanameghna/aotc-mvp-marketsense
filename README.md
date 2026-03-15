@@ -1,16 +1,12 @@
 # MarketSense - AI-Powered Market Anomaly Detection 🧠📈
 
+> [!IMPORTANT]
+> **Live Deployment:** [https://marketsense-v3-verified.onrender.com](https://marketsense-v3-verified.onrender.com)  
+> **API Health:** [https://marketsense-v3-verified.onrender.com/api/v1/health](https://marketsense-v3-verified.onrender.com/api/v1/health)
+
 **MarketSense** is a high-performance financial intelligence system designed to detect market anomalies in real-time. By fusing **Technical Indicators** with **Real-time News Sentiment**, MarketSense identifies statistical outliers and breakout opportunities that traditional screeners miss.
 
 For a deep dive into the internal architecture and file structure, see the **[Codebase Overview](CODEBASE_OVERVIEW.md)**.
-
----
-
-## 🌐 Hosted Live Demo
-The application is deployed on Render and verified to be fully functional.
-
-**Live Dashboard:** [https://marketsense-v3-verified.onrender.com](https://marketsense-v3-verified.onrender.com)  
-**API Status:** [https://marketsense-v3-verified.onrender.com/api/v1/health](https://marketsense-v3-verified.onrender.com/api/v1/health)
 
 ---
 
