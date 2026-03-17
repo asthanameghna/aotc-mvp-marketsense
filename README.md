@@ -1,6 +1,7 @@
 # MarketSense - AI-Powered Market Anomaly Detection 🧠📈
 
 **MarketSense** is a professional-grade financial intelligence system designed to detect market anomalies in real-time. 
+Deployed Link: https://marketsense-v3-verified.onrender.com
 
 Unlike traditional screeners that rely solely on price action, MarketSense employs a **Multi-Modal AI Engine** that fuses **Technical Indicators** (Hard Data) with **News Sentiment Analysis** (Soft Data) to identify statistical outliers, potential crashes, and breakout opportunities.
 
