@@ -185,6 +185,7 @@ class HealthResponse(BaseModel):
     timestamp: str = Field(..., description="Current timestamp")
     cache_stats: CacheStats
     data_source_connected: bool = Field(..., description="Yahoo Finance connectivity status")
+    database: Optional[dict] = Field(None, description="Database status and statistics")
 
     class Config:
         json_schema_extra = {
