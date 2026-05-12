@@ -11,10 +11,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Force the database file to be created in the application root directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, "marketsense.db")
+
 # Database URL from environment or default to SQLite
 DATABASE_URL = os.getenv(
     'DATABASE_URL',
-    'sqlite:///./marketsense.db'
+    f'sqlite:///{DEFAULT_DB_PATH}'
 )
 
 # Create engine
@@ -61,11 +65,16 @@ def init_database():
     """
     Initialize database by creating all tables.
     """
-    from .models import Base
-    
-    logger.info("Creating database tables...")
-    Base.metadata.create_all(bind=engine)
-    logger.info("✅ Database tables created successfully")
+    # Import models here to ensure they are registered with Base metadata
+    try:
+        from . import models
+        logger.info("Creating database tables...")
+        # Use the Base from connection.py to ensure we use the correct metadata
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables created successfully")
+    except Exception as e:
+        logger.error(f"❌ Error initializing database: {e}")
+        raise
 
 
 def check_connection():

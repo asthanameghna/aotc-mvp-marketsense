@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Get configuration from environment
 NEWS_INTERVAL = int(os.getenv('NEWS_INTERVAL_MINUTES', '5'))
 MARKET_DATA_INTERVAL = int(os.getenv('MARKET_DATA_INTERVAL_MINUTES', '15'))
+DEFAULT_HISTORY_DAYS = int(os.getenv('MARKET_DATA_HISTORY_DAYS', '730')) # 2 years default instead of 10
 
 
 def ingest_news_job():
@@ -92,7 +93,9 @@ def ingest_market_data_job():
         anomaly_detector = MarketAnomalyDetector()
         
         # Fetch data for all stocks
-        portfolio_data = fetcher.fetch_multiple_stocks(watchlist, days_back=3650)
+        logger.info(f"Triggering batch fetch for {len(watchlist)} tickers with {DEFAULT_HISTORY_DAYS} days of history...")
+        portfolio_data = fetcher.fetch_multiple_stocks(watchlist, days_back=DEFAULT_HISTORY_DAYS)
+        logger.info(f"Fetched data for {len(portfolio_data)} stocks")
         
         for ticker, raw_data in portfolio_data.items():
             try:

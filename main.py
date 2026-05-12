@@ -12,6 +12,13 @@ from fastapi.responses import JSONResponse
 
 from api.routes import router
 from api.dependencies import get_cache_service, get_market_service
+from database.connection import init_database, check_connection
+from background_jobs import ingest_news_job, ingest_market_data_job
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from datetime import datetime, timedelta
+import os
+from config import load_watchlist
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +36,16 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting MarketSense API...")
     
+    # Initialize database tables (creates market_sense.db and tables on Render)
+    try:
+        init_database()
+        if check_connection():
+            logger.info("✅ Database initialized and verified")
+        else:
+            logger.error("❌ Database initialization failed verification")
+    except Exception as e:
+        logger.error(f"❌ CRITICAL: Database initialization failed: {e}")
+    
     # Initialize services
     cache = get_cache_service()
     market = get_market_service()
@@ -39,12 +56,79 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ Yahoo Finance connectivity test failed")
     
+    # Start background scheduler
+    NEWS_INTERVAL = int(os.getenv('NEWS_INTERVAL_MINUTES', '5'))
+    MARKET_DATA_INTERVAL = int(os.getenv('MARKET_DATA_INTERVAL_MINUTES', '15'))
+    
+    # Check if we have any data. If not, trigger an immediate ingestion
+    from database import crud
+    from database.connection import SessionLocal
+    db = SessionLocal()
+    has_data = False
+    try:
+        watchlist = load_watchlist()
+        if watchlist:
+            first_ticker = watchlist[0]
+            analysis = crud.get_complete_analysis(db, first_ticker)
+            if analysis:
+                has_data = True
+                logger.info(f"📊 Existing data found for {first_ticker}, skipping initial sync.")
+            else:
+                logger.info("🔍 No data found in database. Initial sync required.")
+    except Exception as e:
+        logger.error(f"Error checking for existing data: {e}")
+    finally:
+        db.close()
+
+    scheduler = BackgroundScheduler()
+    
+    # Give the database 2 seconds to be ready
+    start_time = datetime.now() + timedelta(seconds=2)
+    
+    # If no data, run once immediately
+    if not has_data:
+        logger.info("🚀 Triggering immediate data ingestion for faster first-load...")
+        scheduler.add_job(
+            ingest_news_job,
+            trigger='date',
+            run_date=datetime.now() + timedelta(seconds=1),
+            id='initial_news_sync'
+        )
+        scheduler.add_job(
+            ingest_market_data_job,
+            trigger='date',
+            run_date=datetime.now() + timedelta(seconds=5),
+            id='initial_market_sync'
+        )
+
+    scheduler.add_job(
+        ingest_news_job,
+        trigger=IntervalTrigger(minutes=NEWS_INTERVAL),
+        id='news_ingestion',
+        name='News Ingestion Job',
+        next_run_time=start_time + timedelta(minutes=NEWS_INTERVAL) if not has_data else start_time,
+        replace_existing=True
+    )
+    scheduler.add_job(
+        ingest_market_data_job,
+        trigger=IntervalTrigger(minutes=MARKET_DATA_INTERVAL),
+        id='market_data_ingestion',
+        name='Market Data Ingestion Job',
+        next_run_time=start_time + timedelta(minutes=MARKET_DATA_INTERVAL) if not has_data else start_time,
+        replace_existing=True
+    )
+    scheduler.start()
+    app.state.scheduler = scheduler
+    logger.info(f"✅ Background scheduler started (News: {NEWS_INTERVAL}m, Market: {MARKET_DATA_INTERVAL}m)")
+    
     logger.info("✅ MarketSense API is ready")
     
     yield
     
     # Shutdown
     logger.info("🛑 Shutting down MarketSense API...")
+    if hasattr(app.state, 'scheduler'):
+        app.state.scheduler.shutdown()
     cache.clear()
     logger.info("✅ Shutdown complete")
 
